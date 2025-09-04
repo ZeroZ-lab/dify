@@ -43,10 +43,15 @@ from services.errors.account import (
     AccountRegisterError,
     CannotOperateSelfError,
     CurrentPasswordIncorrectError,
+    EmailChangeRateLimitExceededError,
+    EmailCodeAccountDeletionRateLimitExceededError,
+    EmailCodeLoginRateLimitExceededError,
     InvalidActionError,
     LinkAccountIntegrateError,
     MemberNotInTenantError,
     NoPermissionError,
+    OwnerTransferRateLimitExceededError,
+    PasswordResetRateLimitExceededError,
     RoleAlreadyAssignedError,
     TenantNotFoundError,
 )
@@ -225,9 +230,7 @@ class AccountService:
     ) -> Account:
         """create account"""
         if not FeatureService.get_system_features().is_allow_register and not is_setup:
-            from controllers.console.error import AccountNotFound
-
-            raise AccountNotFound()
+            raise AccountNotFoundError()
 
         if dify_config.BILLING_ENABLED and BillingService.is_email_in_freeze(email):
             raise AccountRegisterError(
@@ -288,8 +291,6 @@ class AccountService:
     def send_account_deletion_verification_email(cls, account: Account, code: str):
         email = account.email
         if cls.email_code_account_deletion_rate_limiter.is_rate_limited(email):
-            from controllers.console.auth.error import EmailCodeAccountDeletionRateLimitExceededError
-
             raise EmailCodeAccountDeletionRateLimitExceededError()
 
         send_account_deletion_verification_code.delay(to=email, code=code)
@@ -434,8 +435,6 @@ class AccountService:
             raise ValueError("Email must be provided.")
 
         if cls.reset_password_rate_limiter.is_rate_limited(account_email):
-            from controllers.console.auth.error import PasswordResetRateLimitExceededError
-
             raise PasswordResetRateLimitExceededError()
 
         code, token = cls.generate_reset_password_token(account_email, account)
@@ -464,8 +463,6 @@ class AccountService:
             raise ValueError("phase must be provided.")
 
         if cls.change_email_rate_limiter.is_rate_limited(account_email):
-            from controllers.console.auth.error import EmailChangeRateLimitExceededError
-
             raise EmailChangeRateLimitExceededError()
 
         code, token = cls.generate_change_email_token(account_email, account, old_email=old_email)
@@ -508,8 +505,6 @@ class AccountService:
             raise ValueError("Email must be provided.")
 
         if cls.owner_transfer_rate_limiter.is_rate_limited(account_email):
-            from controllers.console.auth.error import OwnerTransferRateLimitExceededError
-
             raise OwnerTransferRateLimitExceededError()
 
         code, token = cls.generate_owner_transfer_token(account_email, account)
@@ -649,8 +644,6 @@ class AccountService:
         if email is None:
             raise ValueError("Email must be provided.")
         if cls.email_code_login_rate_limiter.is_rate_limited(email):
-            from controllers.console.auth.error import EmailCodeLoginRateLimitExceededError
-
             raise EmailCodeLoginRateLimitExceededError()
 
         code = "".join([str(secrets.randbelow(exclusive_upper_bound=10)) for _ in range(6)])
@@ -867,9 +860,7 @@ class TenantService:
             and not is_setup
             and not is_from_dashboard
         ):
-            from controllers.console.error import NotAllowedCreateWorkspace
-
-            raise NotAllowedCreateWorkspace()
+            raise WorkSpaceNotAllowedCreateError()
         tenant = Tenant(name=name)
 
         db.session.add(tenant)
