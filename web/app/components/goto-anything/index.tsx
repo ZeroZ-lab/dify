@@ -28,7 +28,7 @@ const GotoAnything: FC<Props> = ({
 }) => {
   const router = useRouter()
   const defaultLocale = useGetLanguage()
-  const { isWorkflowPage } = useGotoAnythingContext()
+  const { isWorkflowPage, isRagPipelinePage } = useGotoAnythingContext()
   const { t } = useTranslation()
   const [show, setShow] = useState<boolean>(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
@@ -38,7 +38,7 @@ const GotoAnything: FC<Props> = ({
   // Filter actions based on context
   const Actions = useMemo(() => {
     // Create a filtered copy of actions based on current page context
-    if (isWorkflowPage) {
+    if (isWorkflowPage || isRagPipelinePage) {
       // Include all actions on workflow pages
       return AllActions
     }
@@ -46,7 +46,7 @@ const GotoAnything: FC<Props> = ({
       const { app, knowledge, plugin, slash } = AllActions
       return { app, knowledge, plugin, slash }
     }
-  }, [isWorkflowPage])
+  }, [isWorkflowPage, isRagPipelinePage])
 
   const [activePlugin, setActivePlugin] = useState<Plugin>()
 
