@@ -4,7 +4,7 @@ import mimetypes
 from collections.abc import Mapping
 from typing import Any
 
-from flask import request
+from flask import Response, request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import RequestEntityTooLarge
@@ -516,8 +516,13 @@ class WebhookService:
 
     @classmethod
     def trigger_workflow_execution(
-        cls, webhook_trigger: WorkflowWebhookTrigger, webhook_data: dict[str, Any], workflow: Workflow
-    ) -> None:
+        cls,
+        webhook_trigger: WorkflowWebhookTrigger,
+        webhook_data: dict[str, Any],
+        workflow: Workflow,
+        is_debug: bool = False,
+        debug_session_id: str | None = None,
+    ) -> str:
         """Trigger workflow execution via AsyncWorkflowService."""
         try:
             with Session(db.engine) as session:
@@ -552,18 +557,82 @@ class WebhookService:
                     trigger_type=WorkflowRunTriggeredFrom.WEBHOOK,
                     inputs=workflow_inputs,
                     tenant_id=webhook_trigger.tenant_id,
+                    is_debug=is_debug,
+                    debug_session_id=debug_session_id,
                 )
 
                 # Trigger workflow execution asynchronously
-                AsyncWorkflowService.trigger_workflow_async(
+                response = AsyncWorkflowService.trigger_workflow_async(
                     session,
                     tenant_owner,
                     trigger_data,
                 )
+                return response.workflow_trigger_log_id
 
         except Exception:
             logger.exception("Failed to trigger workflow for webhook %s", webhook_trigger.webhook_id)
             raise
+
+    @classmethod
+    def trigger_webhook_by_id(cls, webhook_id: str, is_debug: bool = False, debug_session_id: str | None = None):
+        """Trigger webhook execution by webhook ID (simplified interface for debug)."""
+        try:
+            # Get webhook trigger and workflow
+            webhook_trigger, workflow, _node_config = cls.get_webhook_trigger_and_workflow(webhook_id)
+
+            # Extract webhook data from request
+            webhook_data = cls.extract_webhook_data(webhook_trigger)
+
+            # For debug mode, we may need to handle special cases
+            if is_debug:
+                logger.info("Processing debug webhook request for %s, session: %s", webhook_id, debug_session_id)
+
+            # Trigger workflow execution
+            workflow_run_id = cls.trigger_workflow_execution(
+                webhook_trigger=webhook_trigger,
+                webhook_data=webhook_data,
+                workflow=workflow,
+                is_debug=is_debug,
+                debug_session_id=debug_session_id,
+            )
+
+            # Return appropriate response
+            if is_debug:
+                return Response(
+                    json.dumps(
+                        {
+                            "status": "success",
+                            "webhook_id": webhook_id,
+                            "debug_session_id": debug_session_id,
+                            "workflow_run_id": workflow_run_id,
+                            "message": "Debug webhook processed successfully",
+                        }
+                    ),
+                    status=200,
+                    mimetype="application/json",
+                )
+            else:
+                return Response("Webhook processed successfully", status=200)
+
+        except ValueError as e:
+            if is_debug:
+                return Response(
+                    json.dumps({"status": "error", "error": str(e), "webhook_id": webhook_id}),
+                    status=400,
+                    mimetype="application/json",
+                )
+            else:
+                return Response(f"Webhook error: {str(e)}", status=400)
+        except Exception:
+            logger.exception("Failed to process webhook %s", webhook_id)
+            if is_debug:
+                return Response(
+                    json.dumps({"status": "error", "error": "Internal server error", "webhook_id": webhook_id}),
+                    status=500,
+                    mimetype="application/json",
+                )
+            else:
+                return Response("Internal server error", status=500)
 
     @classmethod
     def generate_webhook_response(cls, node_config: Mapping[str, Any]) -> tuple[dict[str, Any], int]:

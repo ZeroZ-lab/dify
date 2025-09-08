@@ -29,6 +29,8 @@ class TriggerData(BaseModel):
     inputs: Mapping[str, Any]
     files: Sequence[Mapping[str, Any]] = Field(default_factory=list)
     trigger_type: WorkflowRunTriggeredFrom
+    is_debug: bool = False
+    debug_session_id: Optional[str] = None
 
     model_config = ConfigDict(use_enum_values=True)
 

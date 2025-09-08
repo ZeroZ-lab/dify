@@ -168,6 +168,8 @@ api.add_resource(
 )
 
 # Import tag controllers
+# Debug routes
+from .debug import DebugSessionApi, DebugSessionDetailApi
 from .tag import tags
 
 # Import workspace controllers
@@ -184,3 +186,7 @@ from .workspace import (
     trigger_providers,
     workspace,
 )
+
+# Register debug routes
+api.add_resource(DebugSessionApi, "/debug/sessions")
+api.add_resource(DebugSessionDetailApi, "/debug/sessions/<string:session_id>")
