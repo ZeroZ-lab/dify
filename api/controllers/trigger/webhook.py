@@ -3,13 +3,8 @@ import logging
 import uuid
 from datetime import UTC, datetime
 
-<<<<<<< HEAD
-from flask import jsonify
-from werkzeug.exceptions import NotFound, RequestEntityTooLarge
-=======
 from flask import jsonify, request
-from werkzeug.exceptions import NotFound
->>>>>>> 6d4b2df7e (Fix linting errors: remove redundant exception objects and fix implicit Optional types)
+from werkzeug.exceptions import NotFound, RequestEntityTooLarge
 
 from controllers.trigger import bp
 from extensions.ext_redis import redis_client
