@@ -57,9 +57,17 @@ def handle_webhook_debug(webhook_id: str):
     This endpoint receives webhook calls for debugging purposes.
     It stores debug information and provides enhanced response details.
     """
+    # Single-use session: if a debug_session is provided, we will consume it
+    session_key: str | None = None
     try:
         # Get debug session ID from query parameter or header
         debug_session_id = request.args.get("debug_session") or request.headers.get("X-Debug-Session")
+        if debug_session_id:
+            session_key = f"debug_session:{debug_session_id}"
+            # Validate session existence before processing; single-use semantics
+            session_data = redis_client.get(session_key)
+            if not session_data:
+                return jsonify({"status": "not_found", "error": "Debug session not found or expired"}), 404
 
         # Get webhook trigger, workflow, and node configuration
         webhook_trigger, workflow, node_config = WebhookService.get_webhook_trigger_and_workflow(webhook_id)
@@ -114,10 +122,6 @@ def handle_webhook_debug(webhook_id: str):
         debug_key = f"webhook_debug:{uuid.uuid4().hex}"
         redis_client.setex(debug_key, 3600, json.dumps(debug_info))
 
-        # Add to debug session if provided
-        if debug_session_id:
-            _add_to_debug_session_from_trigger(debug_session_id, debug_info)
-
         # Return enhanced debug response
         debug_response = {
             "status": "success",
@@ -156,25 +160,10 @@ def handle_webhook_debug(webhook_id: str):
             "timestamp": datetime.now(UTC).isoformat(),
         }
         return jsonify(debug_response), 500
-
-
-def _add_to_debug_session_from_trigger(session_id: str, debug_info: dict):
-    """Add debug info to session history (called from trigger module)."""
-    try:
-        session_data = redis_client.get(f"debug_session:{session_id}")
-        if session_data:
-            session = json.loads(session_data.decode("utf-8"))
-
-            # Add webhook call to session history
-            session["webhook_calls"].append(debug_info)
-
-            # Keep only last 20 calls
-            if len(session["webhook_calls"]) > 20:
-                session["webhook_calls"] = session["webhook_calls"][-20:]
-
-            # Update session
-            session["last_activity"] = datetime.now(UTC).isoformat()
-            redis_client.setex(f"debug_session:{session_id}", 86400, json.dumps(session))
-
-    except Exception:
-        logger.exception("Failed to add to debug session from trigger")
+    finally:
+        # Consume the session after any debug call if provided
+        if session_key:
+            try:
+                redis_client.delete(session_key)
+            except Exception:
+                logger.exception("Failed to consume debug session %s", session_key)
