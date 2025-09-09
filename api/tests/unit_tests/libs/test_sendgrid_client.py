@@ -1,9 +1,9 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from python_http_client.exceptions import UnauthorizedError
 
 from libs.sendgrid import SendGridClient
-from python_http_client.exceptions import ForbiddenError, UnauthorizedError
 
 
 def _mail(to: str = "user@example.com") -> dict:

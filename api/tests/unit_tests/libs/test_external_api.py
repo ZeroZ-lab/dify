@@ -2,8 +2,8 @@ from flask import Blueprint, Flask
 from flask_restx import Resource
 from werkzeug.exceptions import BadRequest, Unauthorized
 
-from libs.external_api import ExternalApi
 from core.errors.error import AppInvokeQuotaExceededError
+from libs.external_api import ExternalApi
 
 
 def _create_app():
