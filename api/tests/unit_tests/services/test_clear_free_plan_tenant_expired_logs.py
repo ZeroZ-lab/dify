@@ -164,5 +164,3 @@ class TestClearFreePlanTenantExpiredLogs:
             mock_session.query.return_value.where.return_value.all.return_value = sample_records
 
             ClearFreePlanTenantExpiredLogs._clear_message_related_tables(mock_session, "tenant-123", sample_message_ids)
-
-            pass

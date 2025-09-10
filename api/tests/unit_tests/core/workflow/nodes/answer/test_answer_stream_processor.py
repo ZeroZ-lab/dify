@@ -192,10 +192,7 @@ def test_process():
     answer_stream_processor = AnswerStreamProcessor(graph=graph, variable_pool=variable_pool)
 
     def graph_generator() -> Generator[GraphEngineEvent, None, None]:
-        # print("")
         for event in _recursive_process(graph, "start"):
-            # print("[ORIGIN]", event.__class__.__name__ + ":", event.route_node_state.node_id,
-            #       " " + (event.chunk_content if isinstance(event, NodeRunStreamChunkEvent) else ""))
             if isinstance(event, NodeRunSucceededEvent):
                 if "llm" in event.route_node_state.node_id:
                     variable_pool.add(
@@ -207,10 +204,7 @@ def test_process():
     result_generator = answer_stream_processor.process(graph_generator())
     stream_contents = ""
     for event in result_generator:
-        # print("[ANSWER]", event.__class__.__name__ + ":", event.route_node_state.node_id,
-        #       " " + (event.chunk_content if isinstance(event, NodeRunStreamChunkEvent) else ""))
         if isinstance(event, NodeRunStreamChunkEvent):
             stream_contents += event.chunk_content
-        pass
 
     assert stream_contents == "c012da01b"

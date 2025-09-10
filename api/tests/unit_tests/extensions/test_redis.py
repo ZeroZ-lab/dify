@@ -47,7 +47,6 @@ def test_redis_fallback_preserves_function_metadata():
     @redis_fallback(default_return=None)
     def test_func():
         """Test function docstring"""
-        pass
 
     assert test_func.__name__ == "test_func"
     assert test_func.__doc__ == "Test function docstring"

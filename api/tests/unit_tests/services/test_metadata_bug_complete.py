@@ -185,8 +185,6 @@ class TestMetadataValidationSummary:
         # The bug was: Layer 1 allowed None, but Layers 2-4 expected non-None
         # The fix: Make Layer 1 consistent with Layers 2-4
 
-        assert True  # This test documents the architecture
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

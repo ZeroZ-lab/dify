@@ -199,7 +199,6 @@ def test_run():
 
         count = 0
         for item in result:
-            # print(type(item), item)
             count += 1
             if isinstance(item, RunCompletedEvent):
                 assert item.run_result.status == WorkflowNodeExecutionStatus.SUCCEEDED

@@ -213,13 +213,12 @@ def test_run_parallel_in_workflow(mock_close, mock_remove):
             )
         )
 
-    # print("")
+    
 
     with patch.object(LLMNode, "_run", new=llm_generator):
         items = []
         generator = graph_engine.run()
         for item in generator:
-            # print(type(item), item)
             items.append(item)
             if isinstance(item, NodeRunSucceededEvent):
                 assert item.route_node_state.status == RouteNodeState.Status.SUCCESS
@@ -320,12 +319,11 @@ def test_run_parallel_in_chatflow(mock_close, mock_remove):
         max_execution_time=1200,
     )
 
-    # print("")
+    
 
     items = []
     generator = graph_engine.run()
     for item in generator:
-        # print(type(item), item)
         items.append(item)
         if isinstance(item, NodeRunSucceededEvent):
             assert item.route_node_state.status == RouteNodeState.Status.SUCCESS
@@ -501,7 +499,7 @@ def test_run_branch(mock_close, mock_remove):
         max_execution_time=1200,
     )
 
-    # print("")
+    
 
     items = []
     generator = graph_engine.run()
@@ -519,7 +517,7 @@ def test_run_branch(mock_close, mock_remove):
     assert items[8].route_node_state.node_run_result.outputs["answer"] == "1 takato"
     assert isinstance(items[9], GraphRunSucceededEvent)
 
-    # print(graph_engine.graph_runtime_state.model_dump_json(indent=2))
+    
 
 
 @patch("extensions.ext_database.db.session.remove")

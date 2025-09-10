@@ -231,4 +231,3 @@ class TestAuthIntegration:
         security_tests = core_scenarios["security"]
         assert "multi_tenant_isolation" in security_tests
         assert "sensitive_data_protection" in security_tests
-        assert True
