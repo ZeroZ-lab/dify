@@ -111,7 +111,7 @@ const NewFeaturePanel = ({
           {isChatMode && (
             <Citation disabled={disabled} onChange={onChange} />
           )}
-          {(isChatMode || !inWorkflow) && <Moderation disabled={disabled} onChange={onChange} />}
+          <Moderation disabled={disabled} onChange={onChange} />
           {!inWorkflow && isChatMode && (
             <AnnotationReply disabled={disabled} onChange={onChange} />
           )}
