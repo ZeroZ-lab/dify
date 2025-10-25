@@ -8,7 +8,7 @@
 
 ## 图纸：从 DSL 到 Graph
 
-档案柜第一层，标着 GraphTemplate（`api/core/workflow/graph/graph_template.py:1`）。它像“子装配图册”，把一组节点和边打包，标注根节点与输出选择器：
+档案柜第一层，标着 GraphTemplate（[api/core/workflow/graph/graph_template.py:1](../../api/core/workflow/graph/graph_template.py#L1)）。它像“子装配图册”，把一组节点和边打包，标注根节点与输出选择器：
 
 ```python
 # api/core/workflow/graph/graph_template.py
@@ -20,7 +20,7 @@ class GraphTemplate(BaseModel):
     output_selectors: list[str] = Field(default_factory=list, description="output selectors")
 ```
 
-再往下是 Edge（`api/core/workflow/graph/edge.py:1`），每条边都清楚写着从哪台机器（tail）到哪台机器（head），以及是哪个“出口”（`source_handle`）发出来的：
+再往下是 Edge（[api/core/workflow/graph/edge.py:1](../../api/core/workflow/graph/edge.py#L1)），每条边都清楚写着从哪台机器（tail）到哪台机器（head），以及是哪个“出口”（`source_handle`）发出来的：
 
 ```python
 # api/core/workflow/graph/edge.py
@@ -33,7 +33,7 @@ class Edge:
     state: NodeState = field(default=NodeState.UNKNOWN)  # 这条传送带当前状态
 ```
 
-蓝图真正立体化的是 Graph（`api/core/workflow/graph/graph.py:1`）。它接过“节点清单 + 边清单”，决定谁是根，怎么连线，哪些分支一开始就应该跳过：
+蓝图真正立体化的是 Graph（[api/core/workflow/graph/graph.py:1](../../api/core/workflow/graph/graph.py#L1)）。它接过“节点清单 + 边清单”，决定谁是根，怎么连线，哪些分支一开始就应该跳过：
 
 ```python
 # api/core/workflow/graph/graph.py（节选）
@@ -125,7 +125,7 @@ rootB (inactive, SKIPPED) ──x─▶ nodeB1 (SKIPPED)
 
 ### NodeFactory 与版本映射：谁来把图纸变机器
 
-装配车间的“招工规则”由工厂类决定。默认工厂 `DifyNodeFactory`（`api/core/workflow/nodes/node_factory.py:1`）会从“类型→类”对照表里挑 `latest` 版本的实现：
+装配车间的“招工规则”由工厂类决定。默认工厂 `DifyNodeFactory`（[api/core/workflow/nodes/node_factory.py:1](../../api/core/workflow/nodes/node_factory.py#L1)）会从“类型→类”对照表里挑 `latest` 版本的实现：
 
 ```python
 # api/core/workflow/nodes/node_factory.py（节选）
@@ -149,7 +149,7 @@ class DifyNodeFactory(NodeFactory):
         return node_instance
 ```
 
-“对照表”就在 `node_mapping.py`，其中有些类型（如 TOOL/AGENT）同时保留了历史版本号以兼容旧数据。速记图：
+“对照表”就在 [api/core/workflow/nodes/node_mapping.py:1](../../api/core/workflow/nodes/node_mapping.py#L1)，其中有些类型（如 TOOL/AGENT）同时保留了历史版本号以兼容旧数据。速记图：
 
 ```
 NodeType ──► { "latest": NodeClass, "1": OldNodeClass, ... }
@@ -159,7 +159,7 @@ NodeType ──► { "latest": NodeClass, "1": OldNodeClass, ... }
 
 ### Graph 校验：别把传送带接到空气上
 
-交付前，还要跑一遍安全巡检（`api/core/workflow/graph/validation.py:1`）：
+交付前，还要跑一遍安全巡检（[api/core/workflow/graph/validation.py:1](../../api/core/workflow/graph/validation.py#L1)）：
 
 ```python
 class _EdgeEndpointValidator:
@@ -184,7 +184,7 @@ class _RootNodeValidator:
 
 ### GraphBuilder：五分钟拼一条测试线
 
-写单测时不必每次都手搓 DSL，可用 `GraphBuilder`（`api/core/workflow/graph/graph.py:480` 起）快速搭一条线：
+写单测时不必每次都手搓 DSL，可用 `GraphBuilder`（[api/core/workflow/graph/graph.py:376](../../api/core/workflow/graph/graph.py#L376) 起）快速搭一条线：
 
 ```python
 from core.workflow.graph.graph import Graph, GraphBuilder
@@ -239,7 +239,7 @@ start ──(source)──▶ llm_1 ──(source)──▶ end
 
 ## 运行态监控：GraphRuntimeState
 
-监控室的大屏幕展示的是运行态（`api/core/workflow/runtime/graph_runtime_state.py:1`）。它掌管 ready queue、执行聚合、响应协调、以及 outputs/tokens 等统计。核心属性都带着“需要时才开灯”的节电模式（lazy init）：
+监控室的大屏幕展示的是运行态（[api/core/workflow/runtime/graph_runtime_state.py:1](../../api/core/workflow/runtime/graph_runtime_state.py#L1)）。它掌管 ready queue、执行聚合、响应协调、以及 outputs/tokens 等统计。核心属性都带着“需要时才开灯”的节电模式（lazy init）：
 
 ```python
 # api/core/workflow/runtime/graph_runtime_state.py（节选）
@@ -345,7 +345,7 @@ def dumps(self) -> str:
 
 ## 高架仓库：VariablePool
 
-再往里走是一座“高架仓库”（`api/core/workflow/runtime/variable_pool.py:1`）。它把每个变量放到“货架层级路径”上：第一层是 node_id，第二层是变量名；再深一点可以取文件属性或对象子字段。
+再往里走是一座“高架仓库”（[api/core/workflow/runtime/variable_pool.py:1](../../api/core/workflow/runtime/variable_pool.py#L1)）。它把每个变量放到“货架层级路径”上：第一层是 node_id，第二层是变量名；再深一点可以取文件属性或对象子字段。
 
 ```python
 class VariablePool(BaseModel):
@@ -428,7 +428,7 @@ empty()                → 一键建个带系统变量的空仓库
 
 ### 变量搬运工：把用户输入放上货架
 
-当我们单步/调试运行节点时，需要把用户的输入对齐到仓库对应的格子里，这活由 `WorkflowEntry.mapping_user_inputs_to_variable_pool()` 操作（`api/core/workflow/workflow_entry.py:364` 起）：
+当我们单步/调试运行节点时，需要把用户的输入对齐到仓库对应的格子里，这活由 `WorkflowEntry.mapping_user_inputs_to_variable_pool()` 操作（[api/core/workflow/workflow_entry.py:364](../../api/core/workflow/workflow_entry.py#L364) 起）：
 
 ```python
 for node_variable, variable_selector in variable_mapping.items():

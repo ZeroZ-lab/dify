@@ -1,4 +1,4 @@
-# 05 节点实现与事件联动
+# 07 节点实现与事件联动
 
 ## 学习成果
 - 熟悉节点基类的 `_run()` 模式、输入解析、输出写入流程
@@ -11,15 +11,15 @@
 3. 事件是如何从节点执行传播到引擎、再到上层服务或监听器的？
 
 ## 必读源码
-- `api/core/workflow/nodes/base/node.py:1`
-- `api/core/workflow/nodes/node_mapping.py:1`
+- [api/core/workflow/nodes/base/node.py:1](../../api/core/workflow/nodes/base/node.py#L1)
+- [api/core/workflow/nodes/node_mapping.py:1](../../api/core/workflow/nodes/node_mapping.py#L1)
 - 典型节点：
-  - `api/core/workflow/nodes/llm/llm_node.py:1`
-  - `api/core/workflow/nodes/http_request/http_request_node.py:1`
-  - `api/core/workflow/nodes/loop/loop_node.py:1`
+  - [api/core/workflow/nodes/llm/node.py:1](../../api/core/workflow/nodes/llm/node.py#L1)
+  - [api/core/workflow/nodes/http_request/node.py:1](../../api/core/workflow/nodes/http_request/node.py#L1)
+  - [api/core/workflow/nodes/loop/loop_node.py:1](../../api/core/workflow/nodes/loop/loop_node.py#L1)
 - `api/core/workflow/nodes/_utils`（若存在的工具函数）
-- `api/core/workflow/node_events/__init__.py:1`
-- `api/core/workflow/graph_events/__init__.py:1`
+- [api/core/workflow/node_events/__init__.py:1](../../api/core/workflow/node_events/__init__.py#L1)
+- [api/core/workflow/graph_events/__init__.py:1](../../api/core/workflow/graph_events/__init__.py#L1)
 
 ## Walkthrough
 1. **节点基类**  
@@ -47,7 +47,6 @@
 - 如果要新增“长时间运行”的节点，需要留意哪些超时或心跳逻辑？
 
 ## 延伸阅读
-- `api/services/tools/` 或 `api/services/agent_service.py` 中使用节点的场景
-- `api/tests/unit_tests/core/workflow/nodes/` 的测试策略
+- [api/services/tools](../../api/services/tools) 或 [api/services/agent_service.py:1](../../api/services/agent_service.py#L1) 中使用节点的场景
+- [api/tests/unit_tests/core/workflow/nodes](../../api/tests/unit_tests/core/workflow/nodes) 的测试策略
 - `api/core/workflow/node_events/listeners/`（如有）
-

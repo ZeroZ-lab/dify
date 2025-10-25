@@ -1,4 +1,4 @@
-# 06 业务协作与扩展机制
+# 08 业务协作与扩展机制
 
 ## 学习成果
 - 说明服务层、仓储层如何与核心工作流域协同管理运行记录与配置
@@ -11,11 +11,11 @@
 3. 多租户或 Workspace 信息怎样在服务层传递到核心域？
 
 ## 必读源码
-- `api/repositories/factory.py:1`
-- `api/core/repositories/__init__.py` 与工作流相关仓储实现
-- `api/services/workflow_app_service.py:1`、`api/services/workspace_service.py:1`
-- `api/services/plugin`、`api/services/tools`、`api/services/agent_service.py:1`
-- `api/core/workflow/system_variable.py:1`
+- [api/repositories/factory.py:1](../../api/repositories/factory.py#L1)
+- [api/core/repositories/__init__.py](../../api/core/repositories/__init__.py) 与工作流相关仓储实现
+- [api/services/workflow_app_service.py:1](../../api/services/workflow_app_service.py#L1)、[api/services/workspace_service.py:1](../../api/services/workspace_service.py#L1)
+- [api/services/plugin](../../api/services/plugin)、[api/services/tools](../../api/services/tools)、[api/services/agent_service.py:1](../../api/services/agent_service.py#L1)
+- [api/core/workflow/system_variable.py:1](../../api/core/workflow/system_variable.py#L1)
 - `extensions/ext_*` 中与工作流相关的扩展（如存储、身份等）
 
 ## Walkthrough
@@ -43,7 +43,6 @@
 - 在多租户场景下，哪些信息必须在工作流运行时隔离？怎样验证？
 
 ## 延伸阅读
-- `api/core/workflow/variable_loader.py`
-- `api/services/dataset_service.py` 中与 workflow graph 关联的代码
-- `api/extensions/ext_app_metrics.py`、`ext_request_logging.py`
-
+- [api/core/workflow/variable_loader.py](../../api/core/workflow/variable_loader.py)
+- [api/services/dataset_service.py](../../api/services/dataset_service.py) 中与 workflow graph 关联的代码
+- [api/extensions/ext_app_metrics.py](../../api/extensions/ext_app_metrics.py)、[api/extensions/ext_request_logging.py](../../api/extensions/ext_request_logging.py)

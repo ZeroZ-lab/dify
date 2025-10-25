@@ -1,4 +1,4 @@
-# 07 测试策略与调试路径
+# 09 测试策略与调试路径
 
 ## 学习成果
 - 熟悉核心工作流模块的单元测试、夹具组织方式
@@ -11,11 +11,11 @@
 3. 日志、事件能提供哪些调试线索？如何开启更详细的输出来定位问题？
 
 ## 必读源码
-- `api/tests/unit_tests/core/workflow/` 全部子目录
-- `api/tests/unit_tests/core/workflow/graph_engine/`、`nodes/`、`entities/`
-- `api/tests/conftest.py` 与工作流相关夹具
-- `dev/pytest/pytest_unit_tests.sh`
-- `api/core/workflow/graph_engine/layer/debug_logging_layer.py`（或同类）
+- [api/tests/unit_tests/core/workflow/](../../api/tests/unit_tests/core/workflow/) 全部子目录
+- [api/tests/unit_tests/core/workflow/graph_engine/](../../api/tests/unit_tests/core/workflow/graph_engine/)、`nodes/`、`entities/`
+- [api/tests/conftest.py](../../api/tests/conftest.py) 与工作流相关夹具
+- [dev/pytest/pytest_unit_tests.sh](../../dev/pytest/pytest_unit_tests.sh)
+- [api/core/workflow/graph_engine/layers/debug_logging.py](../../api/core/workflow/graph_engine/layers/debug_logging.py)（或同类）
 - `api/core/workflow/graph_events/listeners/`（如有）
 
 ## Walkthrough
@@ -43,7 +43,6 @@
 - 如何构造端到端测试或集成测试来覆盖跨服务协作的场景？
 
 ## 延伸阅读
-- `CONTRIBUTING.md` 中的测试指南  
-- `docs/zh-CN/README.md` 对工作流功能的描述  
+- [CONTRIBUTING.md](../../CONTRIBUTING.md) 中的测试指南  
+- [docs/zh-CN/README.md](../../docs/zh-CN/README.md) 对工作流功能的描述  
 - 相关 GitHub Issues/PR，了解真实问题的调试过程
-
