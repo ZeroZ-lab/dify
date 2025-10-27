@@ -110,3 +110,83 @@ for ev in engine.run():
 - 会话数据：PersistenceLayer 在准备 WorkflowExecution.inputs 时特意剔除了会话 ID（convo_id），避免将运行绑定到特定会话（见 persistence.py `_prepare_workflow_inputs`）。快照里若仍带会话上下文，也应考虑脱敏。
 
 下一篇（06）：我们去机修间，聊聊并行扩缩容、层（Layer）与事件、以及“失败不等于崩溃”的错误策略矩阵。
+
+## 命令体系总览（类型与模型）
+
+- 命令类型：`abort`、`pause`（见 `CommandType`，`api/core/workflow/graph_engine/entities/commands.py:14`）。
+- 数据模型：`AbortCommand`、`PauseCommand` 继承自 `GraphEngineCommand`（见 `api/core/workflow/graph_engine/entities/commands.py:21`）。
+- 协议接口：`CommandChannel` 规定 `fetch_commands()/send_command()`（见 `api/core/workflow/graph_engine/protocols/command_channel.py:13`）。
+
+小抄：
+```json
+{"command_type":"abort","payload":null,"reason":"User requested stop"}
+```
+
+## 处理链路（注册与轮询）
+
+- 注册处理器：引擎在构造阶段注册 `AbortCommandHandler`/`PauseCommandHandler`（见 `api/core/workflow/graph_engine/graph_engine.py:129`、`api/core/workflow/graph_engine/graph_engine.py:136`）。
+- 轮询触发：
+  - 调度线程在以下时机检查命令：
+    - 收到节点“终结类”事件后（`Succeeded/Failed/Exception`）（见 `api/core/workflow/graph_engine/orchestration/dispatcher.py:36`、`api/core/workflow/graph_engine/orchestration/dispatcher.py:101`、`api/core/workflow/graph_engine/orchestration/dispatcher.py:113`）。
+    - 空转时也会周期性检查，避免漏掉停止请求（见 `api/core/workflow/graph_engine/orchestration/dispatcher.py:108`–`api/core/workflow/graph_engine/orchestration/dispatcher.py:111`）。
+  - 命令拉取和分派由 `CommandProcessor` 完成（见 `api/core/workflow/graph_engine/command_processing/command_processor.py:56`、`api/core/workflow/graph_engine/command_processing/command_processor.py:65`）。
+
+提示：`ExecutionCoordinator.is_execution_complete()` 把 `paused/aborted/error` 当作“终结态”，因此命令一旦生效，调度循环会尽快收尾（见 `api/core/workflow/graph_engine/orchestration/execution_coordinator.py:58`–`api/core/workflow/graph_engine/orchestration/execution_coordinator.py:65`）。
+
+## 暂停/中止的可观测结果
+
+- 暂停：`GraphExecution.is_paused=True`，`run()` 收尾产出 `GraphRunPausedEvent(outputs, reason)`（见 `api/core/workflow/graph_engine/graph_engine.py:248`–`api/core/workflow/graph_engine/graph_engine.py:255`）。
+- 中止：`GraphRunAbortedEvent(outputs, reason)`（见 `api/core/workflow/graph_engine/graph_engine.py:256`–`api/core/workflow/graph_engine/graph_engine.py:265`）。
+- 错误：`GraphRunFailedEvent`（见 `api/core/workflow/graph_engine/graph_engine.py:286`–`api/core/workflow/graph_engine/graph_engine.py:293`）。
+
+补充：节点自发暂停事件处理时会把该节点标记出执行队列、并把节点状态复位为 `UNKNOWN` 以便恢复后可重新调度（见 `api/core/workflow/graph_engine/event_management/event_handlers.py:208`–`api/core/workflow/graph_engine/event_management/event_handlers.py:217`）。
+
+## InMemory 通道与本地开发
+
+- `InMemoryChannel` 通过线程安全队列实现，适合单进程本地/单元测试（见 `api/core/workflow/graph_engine/command_channels/in_memory_channel.py:15`、`api/core/workflow/graph_engine/command_channels/in_memory_channel.py:27`）。
+- `WorkflowEntry` 默认未显式传入时会使用 InMemory 通道，并把它注入 `GraphEngine`（见 `api/core/workflow/workflow_entry.py:41`、`api/core/workflow/workflow_entry.py:62`）。
+
+## 控制面入口与“双停机制”
+
+- 控制面 API：`POST /service-api/workflows/tasks/{task_id}/stop` 既设置“旧的停止标记”，也通过新通道发送 `abort`，两套机制并存以保证兼容（见 `api/controllers/service_api/app/workflow.py:250`、`api/controllers/service_api/app/workflow.py:275`）。
+- 旧机制：`AppQueueManager.set_stop_flag_no_user_check(task_id)` 写入 `generate_task_stopped:{task_id}`，用于老消费方轮询停止（见 `api/core/app/apps/base_app_queue_manager.py:160`、`api/core/app/apps/base_app_queue_manager.py:176`）。
+- 新机制：`GraphEngineManager.send_stop_command(task_id)` 通过 Redis 通道下发（见 `api/core/workflow/graph_engine/manager.py:26`、`api/core/workflow/graph_engine/manager.py:35`）。
+- 单测参考：`test_redis_stop_integration.py` 覆盖了 send/receive 细节与双机制并存（见 `api/tests/unit_tests/core/workflow/graph_engine/test_redis_stop_integration.py:1`）。
+
+## 竞态与触发边界（实践建议）
+
+- 生效边界：命令在调度线程“事件处理的间隙”或“空转检查”时生效；正在运行的节点不会被强制中断，属于“协作式停止”。
+- Worker 停止：当执行进入 `paused/aborted` 终结态后，`_stop_execution()` 会停止调度器与工作池，避免继续取新任务（见 `api/core/workflow/graph_engine/graph_engine.py:341`–`api/core/workflow/graph_engine/graph_engine.py:349`）。
+- 扩展点：`ExecutionCoordinator.handle_pause_if_needed/handle_abort_if_needed` 提供“立即停工并清空执行中的节点”的钩子，适用于需要更激进的停机策略的场景（见 `api/core/workflow/graph_engine/orchestration/execution_coordinator.py:88`、`api/core/workflow/graph_engine/orchestration/execution_coordinator.py:97`）。
+
+## 常见问题（FAQ）
+
+- 为什么暂停后恢复会从该节点“重新开始”？
+  - 节点自发暂停时会把节点状态重置为 `UNKNOWN` 并登记到 `paused_nodes`，恢复时重新入队（见 `api/core/workflow/graph_engine/event_management/event_handlers.py:213`、`api/core/workflow/runtime/graph_runtime_state.py:337`）。
+- 恢复时流式输出还能接上吗？
+  - 若仅同进程恢复：`ResponseCoordinator` 仍在内存，能继续基于变量池/缓冲推进；跨进程则需要将 `response_coordinator.dumps()` 一并入快照（`GraphRuntimeState.dumps()` 已内置，见 `api/core/workflow/runtime/graph_runtime_state.py:309`–`api/core/workflow/runtime/graph_runtime_state.py:312`）。
+- Redis 掉线发送命令会怎样？
+  - `GraphEngineManager._send_command` 对异常静默，旧机制仍可兜底（见 `api/core/workflow/graph_engine/manager.py:55`–`api/core/workflow/graph_engine/manager.py:60`）。
+
+## 彩蛋：在 Layer 里下达命令
+
+`GraphEngineLayer.initialize()` 会注入只读运行态与 `CommandChannel`，你可以在 Layer 内基于业务策略主动下达暂停/停止：
+
+```python
+from core.workflow.graph_engine.layers.base import GraphEngineLayer
+from core.workflow.graph_engine.entities.commands import PauseCommand
+
+class QuotaGuardLayer(GraphEngineLayer):
+    def on_graph_start(self):
+        pass
+
+    def on_event(self, event):
+        if self.graph_runtime_state.total_tokens > 100_000:
+            # 发送暂停，等待人工处理
+            self.command_channel.send_command(PauseCommand(reason="Quota exceeded"))
+
+    def on_graph_end(self, error: Exception | None):
+        pass
+```
+
+这类策略和“快照层”可以搭配使用，在 `GraphRunPausedEvent` 时一并落快照，实现“自动刹车 + 可续跑”。

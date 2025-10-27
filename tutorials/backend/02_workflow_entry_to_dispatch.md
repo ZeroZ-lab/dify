@@ -31,12 +31,12 @@ WorkflowEntry.run() ──────→ GraphEngine (事件/节点执行)
     └─ CommandChannel (Redis/InMemory) ←─ GraphEngineManager.send_*()
 ```
 
-## 必读源码
+## 必读源码（补充精确锚点）
 - [api/services/workflow_service.py:1](../../api/services/workflow_service.py#L1)
 - [api/services/workflow_run_service.py:1](../../api/services/workflow_run_service.py#L1)
-- [api/services/workflow_app_service.py:1](../../api/services/workflow_app_service.py#L1)
+- [api/services/workflow_app_service.py:12](../../api/services/workflow_app_service.py#L12)（分页查询入口 `get_paginate_workflow_app_logs`：`api/services/workflow_app_service.py:12`–`api/services/workflow_app_service.py:120`）
 - [api/services/workflow/workflow_converter.py:1](../../api/services/workflow/workflow_converter.py#L1)
-- [api/core/workflow/workflow_entry.py:1](../../api/core/workflow/workflow_entry.py#L1)
+- [api/core/workflow/workflow_entry.py:76](../../api/core/workflow/workflow_entry.py#L76)（GraphEngine 构造），`WorkflowEntry.run` 在 `api/core/workflow/workflow_entry.py:115` 起
 - [api/core/workflow/enums.py:1](../../api/core/workflow/enums.py#L1)、[api/core/workflow/errors.py:1](../../api/core/workflow/errors.py#L1)
 - [api/models/workflow.py:1](../../api/models/workflow.py#L1)
 
@@ -55,7 +55,7 @@ WorkflowAppRunner.run()
 WorkflowEntry.run() → GraphEngine
 ```
 
-关键片段（[api/services/app_generate_service.py:104](../../api/services/app_generate_service.py#L104) 起）：
+关键片段（`AppGenerateService.generate` 分发，见 [api/services/app_generate_service.py:104](../../api/services/app_generate_service.py#L104) 起）：
 ```python
 elif app_model.mode == AppMode.WORKFLOW:
     workflow = cls._get_workflow(app_model, invoke_from, workflow_id)
@@ -75,7 +75,7 @@ elif app_model.mode == AppMode.WORKFLOW:
     )
 ```
 
-`WorkflowService` 负责草稿/发布版本的读取、节点单步调试、特性校验等；`WorkflowRunService` 则提供运行记录查询、分页等只读接口（[api/services/workflow_run_service.py:65](../../api/services/workflow_run_service.py#L65)）。两者都通过 `DifyAPIRepositoryFactory` 注入仓储，保持与核心仓储实现解耦。
+`WorkflowService` 负责草稿/发布版本的读取、节点单步调试、特性校验等；`WorkflowRunService` 则提供运行记录查询、分页等只读接口（[api/services/workflow_run_service.py:20](../../api/services/workflow_run_service.py#L20) 初始化仓储，[api/services/workflow_run_service.py:65](../../api/services/workflow_run_service.py#L65) 起分页查询）。两者都通过 `DifyAPIRepositoryFactory` 注入仓储，保持与核心仓储实现解耦。
 
 门禁与保安队（加戏）：
 - 控制器先核验门禁（Token/权限），再把客人转给 `AppGenerateService`；
@@ -171,7 +171,7 @@ workflow_entry = WorkflowEntry(
 ### 4. 调度、命令通道与事件
 `WorkflowEntry.run()` 返回的生成器会驱动图引擎执行节点。为支持实时控制，`WorkflowAppRunner` 将 Redis 命令通道与 `GraphEngine` 关联；停止指令由 `GraphEngineManager.send_stop_command()` 发送，控制器直接调用它（[api/controllers/service_api/app/workflow.py:274](../../api/controllers/service_api/app/workflow.py#L274)）。
 
-执行过程中，`WorkflowPersistenceLayer`（由 `WorkflowAppRunner` 注入）监听 `GraphEngineEvent`，把节点执行、整体运行等事件写入仓储：
+执行过程中，`WorkflowPersistenceLayer`（由 `WorkflowAppRunner` 注入）监听 `GraphEngineEvent`，把节点执行、整体运行等事件写入仓储（`api/core/workflow/graph_engine/layers/persistence.py` 各 Handler，图级从 `persistence.py:74` 起）：
 ```python
 persistence_layer = WorkflowPersistenceLayer(
     application_generate_entity=self.application_generate_entity,
@@ -216,7 +216,7 @@ session.commit()
   - 更新节点流水（WorkflowNodeExecution）：每步的输入/过程数据/输出/错误与时间戳。
 - 大件搬运交给 Celery（`save_workflow_execution_task`），夜深人静把“账本”批量落库，失败还能重试。
 
-### 6. 错误处理与策略
+### 6. 错误处理与策略（补充行号）
 当节点执行抛出 `WorkflowNodeRunFailedError` 时，`WorkflowService._handle_single_step_result()`（[api/services/workflow_service.py:680](../../api/services/workflow_service.py#L680)）或 `WorkflowAppRunner` 会捕获并应用错误策略（`ErrorStrategy.DEFAULT_VALUE` 等），保证节点 Execution 记录能准确标注状态与错误原因。全局异常会触发 `WorkflowEntry.run()` 中的 `GraphRunFailedEvent`（见 [api/core/workflow/graph_engine/graph_engine.py:286–294](../../api/core/workflow/graph_engine/graph_engine.py#L286-L294)），由持久化层写入运行失败信息。
 
 夜间应急预案（更详细）
@@ -225,7 +225,7 @@ session.commit()
 - 默认值（DEFAULT_VALUE）：将 `node.default_value_dict` 与错误信息合并为 outputs，继续向前（[error_handler.py:175–201](../../api/core/workflow/graph_engine/error_handler.py#L175-L201)）。
 - 终止：当无策略/重试穷尽且未配置异常分支时，引擎将终止或抛错，Dispatcher 进入收尾流程。
 
-ASCII 决策树
+ASCII 决策树（就地运行）
 ```
 Node 失败?
   ├─ 可重试? ──► 等待 retry_interval → Retry → 成功? → 继续 : 进入下一分支

@@ -8,7 +8,7 @@
 
 ## 图纸：从 DSL 到 Graph
 
-档案柜第一层，标着 GraphTemplate（[api/core/workflow/graph/graph_template.py:1](../../api/core/workflow/graph/graph_template.py#L1)）。它像“子装配图册”，把一组节点和边打包，标注根节点与输出选择器：
+档案柜第一层，标着 GraphTemplate（[api/core/workflow/graph/graph_template.py:1](../../api/core/workflow/graph/graph_template.py#L1)）。它像“子装配图册”，把一组节点和边打包，标注根节点与输出选择器（字段定义在 `api/core/workflow/graph/graph_template.py:17`–`api/core/workflow/graph/graph_template.py:20`）：
 
 ```python
 # api/core/workflow/graph/graph_template.py
@@ -20,7 +20,7 @@ class GraphTemplate(BaseModel):
     output_selectors: list[str] = Field(default_factory=list, description="output selectors")
 ```
 
-再往下是 Edge（[api/core/workflow/graph/edge.py:1](../../api/core/workflow/graph/edge.py#L1)），每条边都清楚写着从哪台机器（tail）到哪台机器（head），以及是哪个“出口”（`source_handle`）发出来的：
+再往下是 Edge（[api/core/workflow/graph/edge.py:1](../../api/core/workflow/graph/edge.py#L1)），每条边都清楚写着从哪台机器（tail）到哪台机器（head），以及是哪个“出口”（`source_handle`）发出来的（`Edge` 字段定义见 `api/core/workflow/graph/edge.py` 顶部）：
 
 ```python
 # api/core/workflow/graph/edge.py
@@ -59,7 +59,7 @@ class Graph:
         # 3) 映射 node_id -> node_config
         node_configs_map = cls._parse_node_configs(node_configs)
 
-        # 4) 自动/显式寻找 root
+        # 4) 自动/显式寻找 root（实现见 `api/core/workflow/graph/graph.py:83`–`api/core/workflow/graph/graph.py:121`）
         root_node_id = cls._find_root_node_id(node_configs_map, edge_configs, root_node_id)
 
         # 5) 把边做成真传送带（in_edges/out_edges 也建好）
@@ -85,7 +85,7 @@ class Graph:
 - `sourceHandle` 代表条件/出口口子，决定一条边属于哪条分支（例如 true/false）。
 - 多根图里，只能有一个“活跃根”。其它根及下游会被标为 SKIPPED，避免同时跑错线。
 
-九步曲速记（装配流水线）：
+九步曲速记（装配流水线，对应 Graph 内部各 @classmethod 实现位置）：
 
 ```
 [DSL nodes/edges]
@@ -171,7 +171,7 @@ class _EdgeEndpointValidator:
                 ...
 
 class _RootNodeValidator:
-    container_entry_types = (NodeType.ITERATION_START, NodeType.LOOP_START)
+    container_entry_types = (NodeType.ITERATION_START, NodeType.LOOP_START)  # 见 `api/core/workflow/graph/validation.py:74`
     def validate(self, graph: Graph):
         root = graph.root_node
         if root.id not in graph.nodes: ...
@@ -257,7 +257,7 @@ class GraphRuntimeState:
     def ready_queue(self) -> ReadyQueueProtocol:
         if self._ready_queue is None:
             self._ready_queue = self._build_ready_queue()    # 临时打电话叫“排队同事”来上岗
-        return self._ready_queue
+        return self._ready_queue  # 参见 `api/core/workflow/runtime/graph_runtime_state.py:318`–`api/core/workflow/runtime/graph_runtime_state.py:356`
 
     @property
     def graph_execution(self) -> GraphExecutionProtocol:

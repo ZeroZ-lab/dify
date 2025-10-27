@@ -85,9 +85,9 @@ else → Succeeded
 ```
 
 更多细节（来自 ErrorHandler）：
-- 重试参数：节点若配置 `retry`，遵循 `retry_config.max_retries` 与 `retry_interval_seconds`；重试通过 `NodeRunRetryEvent` 发起（error_handler.py:67）。
-- 异常分支：`FAIL_BRANCH` 会产出 `NodeRunExceptionEvent`，并把 `edge_source_handle` 设为 `fail-branch`，EdgeProcessor 将据此选边（error_handler.py:105）。
-- 默认值：`DEFAULT_VALUE` 策略会把 `node.default_value_dict` 与错误信息合并为 outputs，然后继续推进（error_handler.py:132）。
+- 重试参数：节点若配置 `retry`，遵循 `retry_config.max_retries` 与 `retry_interval_seconds`；重试通过 `NodeRunRetryEvent` 发起（见 [api/core/workflow/graph_engine/error_handler.py:67](../../api/core/workflow/graph_engine/error_handler.py#L67)，以及重试实现 [104–137](../../api/core/workflow/graph_engine/error_handler.py#L104-L137)）。
+- 异常分支：`FAIL_BRANCH` 会产出 `NodeRunExceptionEvent`，并把 `edge_source_handle` 设为 `fail-branch`，EdgeProcessor 将据此选边（见 [api/core/workflow/graph_engine/error_handler.py:139–173](../../api/core/workflow/graph_engine/error_handler.py#L139-L173)）。
+- 默认值：`DEFAULT_VALUE` 策略会把 `node.default_value_dict` 与错误信息合并为 outputs，然后继续推进（见 [api/core/workflow/graph_engine/error_handler.py:175–201](../../api/core/workflow/graph_engine/error_handler.py#L175-L201)）。
 - 终止：当无策略或重试穷尽且未配置异常分支时，引擎会把图置为失败或中止（由上层流程决定）。
 
 ## 观察与背压（附加建议）

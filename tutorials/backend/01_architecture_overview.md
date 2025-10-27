@@ -18,8 +18,8 @@ Storage & Records (repositories/, models/)
 ```
 
 ## 必读源码
-- [api/app_factory.py:1](../../api/app_factory.py#L1)：Flask 应用工厂、扩展初始化
-- `api/extensions/ext_*`：主要扩展的注册方式与可选策略
+- [api/app_factory.py:1](../../api/app_factory.py#L1)：Flask 应用工厂、扩展初始化（`create_flask_app_with_configs` 在 `api/app_factory.py:14`、`create_app` 在 `api/app_factory.py:34`、`initialize_extensions` 在 `api/app_factory.py:44`）
+- `api/extensions/ext_*`：主要扩展的注册方式与可选策略（例如 `ext_import_modules.init_app` 在 [api/extensions/ext_import_modules.py:4](../../api/extensions/ext_import_modules.py#L4)，`ext_blueprints.init_app` 在 [api/extensions/ext_blueprints.py:11](../../api/extensions/ext_blueprints.py#L11)）
 - [api/services/__init__.py:1](../../api/services/__init__.py#L1) 与 [api/services/workflow_service.py:1](../../api/services/workflow_service.py#L1)：服务层的入口、依赖注入
 - [api/core/__init__.py:1](../../api/core/__init__.py#L1) 与 [api/core/workflow/README.md:1](../../api/core/workflow/README.md#L1)：核心域分层介绍
 - [api/repositories/factory.py:1](../../api/repositories/factory.py#L1)：持久化层工厂的抽象
@@ -45,7 +45,7 @@ def create_flask_app_with_configs() -> DifyApp:
         RecyclableContextVar.increment_thread_recycles()
 ```
 
-同一函数在 [api/app_factory.py:23](../../api/app_factory.py#L23) 注册了 `before_request` 钩子，用 `RecyclableContextVar.increment_thread_recycles()` 保证线程复用时请求上下文不会串号。这直接依赖了 [api/contexts/wrapper.py:14](../../api/contexts/wrapper.py#L14) 的封装，稍后会继续解读。
+同一函数在 [api/app_factory.py:23](../../api/app_factory.py#L23) 注册了 `before_request` 钩子，用 `RecyclableContextVar.increment_thread_recycles()` 保证线程复用时请求上下文不会串号。这直接依赖了 [api/contexts/wrapper.py:14](../../api/contexts/wrapper.py#L14) 的封装（`increment_thread_recycles` 实现在 `api/contexts/wrapper.py:25`）。
 
 正式的 `create_app()`（[api/app_factory.py:34](../../api/app_factory.py#L34)）像个拿着计时器的车间领班，一声令下，`initialize_extensions()` 排队进场。扩展军团的出场顺序全有讲究：前排的 `ext_logging`、`ext_warnings` 负责调音和广播；`ext_import_modules` 推门把事件监听员叫醒；中段的 `ext_database`、`ext_storage` 搞定原材料仓库；尾声的 `ext_blueprints` 则铺好通往各个展区的红毯。每名扩展上场前还要接受“是否启用”的问询（有些临时请假就不出场了），并在 `DEBUG` 模式下留下上台耗时的统计数据。
 
@@ -70,7 +70,7 @@ for ext in extensions:
 
 在走读时建议挑选几个关键扩展深入阅读：
 - `ext_database.init_app()`（[api/extensions/ext_database.py:53](../../api/extensions/ext_database.py#L53)）初始化 SQLAlchemy 并在 gevent 场景下挂入连接 reset 钩子。
-- `ext_blueprints.init_app()`（[api/extensions/ext_blueprints.py:16](../../api/extensions/ext_blueprints.py#L16)）注册所有蓝图并为不同入口配置 CORS，使请求得以进入服务层。
+- `ext_blueprints.init_app()`（[api/extensions/ext_blueprints.py:11](../../api/extensions/ext_blueprints.py#L11)）注册所有蓝图并为不同入口配置 CORS：控制台/Service API/Web/文件等分别设置白名单与跨域头（参考 `api/extensions/ext_blueprints.py:23`、`:30`、`:40`、`:50`）。
 - `ext_import_modules`（[api/extensions/ext_import_modules.py:4](../../api/extensions/ext_import_modules.py#L4)）简单地 import `events.event_handlers`，靠 import 副作用把监听器接入全局事件总线。
 
 阅读完扩展后，可以列出一张“初始化时间线”，标注哪些扩展提供全局单例（例如 `db`, `storage`, `celery_app`），方便后续章节追踪来源。
@@ -269,7 +269,7 @@ Request end → context vars discarded (recycle count increments next time)
 ```
 这张图说明：上下文值不会自动 reset，而是依赖回收计数避免“旧值泄漏到新请求”。在调试租户或用户身份相关问题时，可以先确认这些步骤是否按预期触发。
 
-### 5. 仓储工厂与多实现支持
+### 5. 仓储工厂与多实现支持（补充锚点）
 继续往后是仓储工厂，门口竖着一块牌子：“禁止服务层直接抱走 ORM 模型，请走仓储窗口。”`DifyAPIRepositoryFactory`（[api/repositories/factory.py:17](../../api/repositories/factory.py#L17)）负责根据配置发货——今天想要 SQLAlchemy 版？可以。明天想换企业定制版？也没问题。只要递上 `sessionmaker` 这张通关证，它就会从货架上抓出合适的仓储实例送到你桌前。对测试同学来说，还能随时换假货（Mock）练习。
 
 ```python
@@ -284,7 +284,7 @@ class DifyAPIRepositoryFactory(DifyCoreRepositoryFactory):
         return repository_class(session_maker=session_maker)
 ```
 
-### 6. 架构约束与静态守护
+### 6. 架构约束与静态守护（补充锚点）
 园区里偶尔还能看到巡逻机器人，胸前贴着“import-linter”。它会盯着每位工友：别跨楼层乱穿，GraphEngine 别直接摸 Nodes 的内部细节。于是像 `GraphRuntimeState` 这样的同学（[api/core/workflow/runtime/graph_runtime_state.py:352](../../api/core/workflow/runtime/graph_runtime_state.py#L352)）遇到需要的类时会悄悄打电话 `importlib.import_module(...)`，确保遵守“内向外”的交通规则。一旦违反，可是会被记名传唤的。
 
 ```python

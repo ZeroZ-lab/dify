@@ -212,6 +212,12 @@ loop(CONTAINER)
 
 实务提醒：容器如何“多次/多轮”驱动子图，属于节点实现与事件配合的内容，会在节点篇（05）里详细展开。
 
+## 角色速记与索引（完整花名册见 00 篇）
+
+- 速记：闸机（ReadyQueue）、班长（GraphStateManager）、工人队（WorkerPool）、调度台（Dispatcher）、站务员（EventHandler）、播音员（EventManager）、导演（ResponseCoordinator）、转辙员（EdgeProcessor）、交通警（SkipPropagator）、医生（ErrorHandler）、电台/指挥台（CommandChannel/Processor）、账本与大钟（GraphRuntimeState/GraphExecution）。
+- 完整花名册与连线图：见《00 夜班花名册与导览地图》（`00_cast_and_map.md`）。
+- 快速源码索引：也集中在 `00_cast_and_map.md` 的“快速索引”一节。
+
 夜班尾声（04:42）
 - 调度主任合上记录本：ready_queue 归零、执行集清空，今晚的车间安安静静；
 - 墙上的指示灯从“运行”切回“待命”，Layers 收到 on_graph_end 的最后一声招呼；

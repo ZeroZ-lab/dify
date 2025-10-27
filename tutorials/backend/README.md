@@ -8,6 +8,7 @@
 - 目标：完成系列后能独立定位工作流相关代码、读懂关键函数并掌握调试策略
 
 ## 篇章规划
+0. **夜班花名册与地图**：一眼认全子系统与协作关系（见 `00_cast_and_map.md`）
 1. **架构总览**：从 `app_factory.py` 切入，理解扩展加载、服务层与核心域的依赖关系
 2. **工作流入口到调度**：跟踪 `workflow_service.py`、`workflow_run_service.py` 如何构建并启动一次运行
 3. **Graph 模型与运行态**：拆解 `core/workflow/graph/` 模板、边条件与变量池协议
@@ -26,13 +27,14 @@
 - 先读测试再读实现：单元测试常包含简化场景，能帮助快速建立对模块职责的预期
 
 ## 链接跳转约定
-- 在 Codex CLI/本地编辑器中：直接使用反引号包裹的文件引用格式 `path:line`（如 `api/core/workflow/graph_engine/graph_engine.py:216`），通常可直接点击跳转。
+- 在 Codex CLI/本地编辑器中：直接使用反引号包裹的文件引用格式 `path:line`（如 `api/core/workflow/graph_engine/graph_engine.py:220`），通常可直接点击跳转。
 - 在 GitHub 等 Markdown 渲染环境中：使用相对链接 + 行号锚点，例如：
   - `[api/services/app_generate_service.py:22](../../api/services/app_generate_service.py#L22)`
-  - `[api/core/workflow/graph_engine/graph_engine.py:216](../../api/core/workflow/graph_engine/graph_engine.py#L216)`
+  - `[api/core/workflow/graph_engine/graph_engine.py:220](../../api/core/workflow/graph_engine/graph_engine.py#L220)`
   - 本教程逐步将关键引用补充为上述两种兼容方案中的一种，以便不同阅读器下都能点击跳转。
 
 ## 状态
+- `00 夜班花名册与地图`：已就绪（见 `00_cast_and_map.md`）
 - `01 架构总览`：草案已就绪（见 `01_architecture_overview.md`）
 - `02 工作流入口到调度`：提纲完成（见 `02_workflow_entry_to_dispatch.md`）
 - `03 Graph 模型与运行态`：详细完成（见 `03_graph_model_and_runtime.md`）
