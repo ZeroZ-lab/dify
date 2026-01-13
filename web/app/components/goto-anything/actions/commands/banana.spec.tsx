@@ -1,16 +1,17 @@
 import { isInWorkflowPage, VIBE_COMMAND_EVENT } from '@/app/components/workflow/constants'
-import i18n from '@/i18n-config/i18next-config'
 import { bananaCommand } from './banana'
 import { registerCommands, unregisterCommands } from './command-bus'
 
-vi.mock('@/i18n-config/i18next-config', () => ({
-  default: {
-    t: vi.fn((key: string, options?: Record<string, unknown>) => {
-      if (!options)
-        return key
-      return `${key}:${JSON.stringify(options)}`
-    }),
-  },
+const mockT = vi.fn((key: string, options?: Record<string, unknown>) => {
+  if (!options)
+    return key
+  return `${key}:${JSON.stringify(options)}`
+})
+
+vi.mock('react-i18next', () => ({
+  getI18n: () => ({
+    t: mockT,
+  }),
 }))
 
 vi.mock('@/app/components/workflow/constants', async () => {
@@ -31,7 +32,8 @@ vi.mock('./command-bus', () => ({
 const mockedIsInWorkflowPage = vi.mocked(isInWorkflowPage)
 const mockedRegisterCommands = vi.mocked(registerCommands)
 const mockedUnregisterCommands = vi.mocked(unregisterCommands)
-const mockedT = vi.mocked(i18n.t)
+// mockT is already a mock function, no need to wrap with vi.mocked unless checking types strictly
+const mockedT = mockT
 
 type CommandArgs = { dsl?: string }
 type CommandMap = Record<string, (args?: CommandArgs) => void | Promise<void>>

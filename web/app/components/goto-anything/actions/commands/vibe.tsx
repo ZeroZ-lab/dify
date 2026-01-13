@@ -1,11 +1,13 @@
 import type { SlashCommandHandler } from './types'
 import { RiSparklingFill } from '@remixicon/react'
 import * as React from 'react'
+import { getI18n } from 'react-i18next'
 import { isInWorkflowPage, VIBE_COMMAND_EVENT } from '@/app/components/workflow/constants'
-import i18n from '@/i18n-config/i18next-config'
 import { registerCommands, unregisterCommands } from './command-bus'
 
 type VibeDeps = Record<string, never>
+
+const i18n = getI18n()
 
 const VIBE_PROMPT_EXAMPLE = 'Summarize a document, classify sentiment, then notify Slack'
 
